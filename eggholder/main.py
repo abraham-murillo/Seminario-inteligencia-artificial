@@ -1,6 +1,7 @@
 from deap import base
 from deap import creator
 from deap import tools
+from deap import algorithms
 
 import random
 import numpy as np
@@ -8,96 +9,121 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-import elitism
 
-# problem constants:
-DIMENSIONS = 2  # number of dimensions
-BOUND_LOW, BOUND_UP = -512.0, 512.0  # boundaries for all dimensions
+# constantes del problema
+DIMENSIONS = 2  # número de dimensiones
+BOUND_LOW, BOUND_UP = -512.0, 512.0  # limites de todas las dimensiones
 
-# Genetic Algorithm constants:
+# constantes del algoritmo gentico
 POPULATION_SIZE = 300
-P_CROSSOVER = 0.9  # probability for crossover
-P_MUTATION = 0.1   # (try also 0.5) probability for mutating an individual
+P_CROSSOVER = 0.9  # probabilidad de cruzarse
+P_MUTATION = 0.1
 MAX_GENERATIONS = 300
 HALL_OF_FAME_SIZE = 30
-CROWDING_FACTOR = 20.0  # crowding factor for crossover and mutation
+CROWDING_FACTOR = 20.0
 
-# set the random seed:
+# ponerle la semilla aleatoria
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 
 toolbox = base.Toolbox()
 
-# define a single objective, minimizing fitness strategy:
+# definir un único objetivo, minimizando la estrategia de aptitud
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 
-# create the Individual class based on list:
+# create la clase del Individuo basado en la lista:
 creator.create("Individual", list, fitness=creator.FitnessMin)
 
 
-# helper function for creating random real numbers uniformly distributed within a given range [low, up]
-# it assumes that the range is the same for every dimension
+# asume que el rango es el mismo para cada dimensión
 def randomFloat(low, up):
     return [random.uniform(l, u) for l, u in zip([low] * DIMENSIONS, [up] * DIMENSIONS)]
 
-# create an operator that randomly returns a float in the desired range and dimension:
+
+# create operador que aleatoriamente regresa un float en el rango deseado y dimensión
 toolbox.register("attrFloat", randomFloat, BOUND_LOW, BOUND_UP)
 
 # create the individual operator to fill up an Individual instance:
-toolbox.register("individualCreator", tools.initIterate, creator.Individual, toolbox.attrFloat)
+toolbox.register(
+    "individualCreator", tools.initIterate, creator.Individual, toolbox.attrFloat
+)
 
-# create the population operator to generate a list of individuals:
+# crear el operador de población para generar una lista de individuos
 toolbox.register("populationCreator", tools.initRepeat, list, toolbox.individualCreator)
 
 
-# Eggholder function as the given individual's fitness:
+# Función eggolder para la aptitud de cada individuo
 def eggholder(individual):
     x = individual[0]
     y = individual[1]
-    f = (-(y + 47.0) * np.sin(np.sqrt(abs(x/2.0 + (y + 47.0)))) - x * np.sin(np.sqrt(abs(x - (y + 47.0)))))
-    return f,  # return a tuple
+    f = -(y + 47.0) * np.sin(np.sqrt(abs(x / 2.0 + (y + 47.0)))) - x * np.sin(
+        np.sqrt(abs(x - (y + 47.0)))
+    )
+    return (f,)  # return a tuple
+
 
 toolbox.register("evaluate", eggholder)
 
-# genetic operators:
+# operadores genéticos
 toolbox.register("select", tools.selTournament, tournsize=2)
-toolbox.register("mate", tools.cxSimulatedBinaryBounded, low=BOUND_LOW, up=BOUND_UP, eta=CROWDING_FACTOR)
-toolbox.register("mutate", tools.mutPolynomialBounded, low=BOUND_LOW, up=BOUND_UP, eta=CROWDING_FACTOR, indpb=1.0/DIMENSIONS)
+toolbox.register(
+    "mate",
+    tools.cxSimulatedBinaryBounded,
+    low=BOUND_LOW,
+    up=BOUND_UP,
+    eta=CROWDING_FACTOR,
+)
+toolbox.register(
+    "mutate",
+    tools.mutPolynomialBounded,
+    low=BOUND_LOW,
+    up=BOUND_UP,
+    eta=CROWDING_FACTOR,
+    indpb=1.0 / DIMENSIONS,
+)
 
 
-# Genetic Algorithm flow:
+# flujo del algoritmo genético
 def main():
 
-    # create initial population (generation 0):
+    # crear población inicial
     population = toolbox.populationCreator(n=POPULATION_SIZE)
 
-    # prepare the statistics object:
+    # preparar objeto estadístico
     stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("min", np.min)
     stats.register("avg", np.mean)
 
-    # define the hall-of-fame object:
+    # definir objecto hall-of-fame
     hof = tools.HallOfFame(HALL_OF_FAME_SIZE)
 
-    # perform the Genetic Algorithm flow with elitism:
-    population, logbook = elitism.eaSimpleWithElitism(population, toolbox, cxpb=P_CROSSOVER, mutpb=P_MUTATION,
-                                              ngen=MAX_GENERATIONS, stats=stats, halloffame=hof, verbose=True)
+    # crear el algoritmo de flujo del algoritmo genético
+    population, logbook = algorithms.eaSimple(
+        population,
+        toolbox,
+        cxpb=P_CROSSOVER,
+        mutpb=P_MUTATION,
+        ngen=MAX_GENERATIONS,
+        stats=stats,
+        halloffame=hof,
+        verbose=True,
+    )
 
-    # print info for best solution found:
+    # imprimir la mejor solución
     best = hof.items[0]
     print("-- Best Individual = ", best)
     print("-- Best Fitness = ", best.fitness.values[0])
 
-    # extract statistics:
+    # extraer estadísticas
     minFitnessValues, meanFitnessValues = logbook.select("min", "avg")
 
-    # plot statistics:
+    # graficar estadísticas
     sns.set_style("whitegrid")
-    plt.plot(minFitnessValues, color='red')
-    plt.plot(meanFitnessValues, color='green')
-    plt.xlabel('Generation')
-    plt.ylabel('Min / Average Fitness')
-    plt.title('Min and Average fitness over Generations')
+    plt.plot(minFitnessValues, color="red")
+    plt.plot(meanFitnessValues, color="green")
+    plt.xlabel("Generation")
+    plt.ylabel("Min / Average Fitness")
+    plt.title("Min and Average fitness over Generations")
 
     plt.show()
 
