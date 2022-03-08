@@ -49,7 +49,8 @@ toolbox.register(
 )
 
 # crear el operador de población para generar una lista de individuos
-toolbox.register("populationCreator", tools.initRepeat, list, toolbox.individualCreator)
+toolbox.register("populationCreator", tools.initRepeat,
+                 list, toolbox.individualCreator)
 
 
 # Función eggolder para la aptitud de cada individuo
@@ -73,6 +74,7 @@ toolbox.register(
     up=BOUND_UP,
     eta=CROWDING_FACTOR,
 )
+
 toolbox.register(
     "mutate",
     tools.mutPolynomialBounded,
