@@ -1,31 +1,36 @@
-from AntColony import AntColony
 from function import eggholder
-import numpy as np
-import random
+from swarm import Swarm
+from function import eggholderV2
+from random import uniform
+from copy import copy
 
-# constantes del problema
-LOW, HIGH = -512.0, 512.0  # limites de todas las dimensiones
+#Constantes del problema
+iteration = 50
+W = 1
+P1 = 1.5
+P2 = 1.4    
 
-# constantes del algoritmo gentico
-POPULATION_SIZE = 100
-MAX_GENERATIONS = 2000
-HALL_OF_FAME_SIZE = 30
-CROWDING_FACTOR = 20.0
+swarm = Swarm()
+swarm.createSwarm()
+print('Function: ', eggholderV2(swarm.memory), '\nParticle: ', swarm.memory)
 
+for i in range(iteration):
+    for j in range(len(swarm.particulas)):
+        swarm.particulas[j].velocityX1 = W * swarm.particulas[j].velocityX1 + P1 * uniform(0,1) * (swarm.particulas[j].localMemory[0] - swarm.particulas[j].position[0]) + P2 * uniform(0,1) * (swarm.memory[0] - swarm.particulas[j].position[0])
+        swarm.particulas[j].velocityX2 = W * swarm.particulas[j].velocityX2 + P1 * uniform(0,1) * (swarm.particulas[j].localMemory[1] - swarm.particulas[j].position[1]) + P2 * uniform(0,1) * (swarm.memory[1] - swarm.particulas[j].position[1])
+        
+        swarm.particulas[j].position[0] = swarm.particulas[j].position[0] + swarm.particulas[j].velocityX1
+        if (swarm.particulas[j].position[0] > 512): swarm.particulas[j].position[0] = 512
+        if (swarm.particulas[j].position[0] < -512): swarm.particulas[j].position[0] = -512
 
-def distance(a, b):
-    if (a[0] == b[0] and a[1] == b[1]):
-        return np.inf
-    return max(eggholder(a[0], a[1]), eggholder(b[0], b[1]))
+        swarm.particulas[j].position[1] = swarm.particulas[j].position[1] + swarm.particulas[j].velocityX2
+        if (swarm.particulas[j].position[1] > 512): swarm.particulas[j].position[1] = 512
+        if (swarm.particulas[j].position[1] < -512): swarm.particulas[j].position[1] = -512
+        
+        if eggholderV2(swarm.particulas[j].position) < eggholderV2(swarm.particulas[j].localMemory):
+            swarm.particulas[j].localMemory = copy(swarm.particulas[j].position)
 
+        if eggholderV2(swarm.particulas[j].position) < eggholderV2(swarm.memory):
+            swarm.memory = copy(swarm.particulas[j].position)
 
-positions = [(random.uniform(LOW, HIGH), random.uniform(LOW, HIGH))
-             for i in range(POPULATION_SIZE)]
-# print(positions)
-distances = [[distance(positions[i], positions[j])
-              for i in range(len(positions))] for j in range(len(positions))]
-# print(distances)
-
-ants = AntColony(np.array(distances), 10, 2,
-                 MAX_GENERATIONS, 0.5, alpha=20, beta=1)
-ants.run()
+    print('Function: ', eggholderV2(swarm.memory), '\nParticle: ', swarm.memory)
