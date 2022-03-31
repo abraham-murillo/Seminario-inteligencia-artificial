@@ -1,193 +1,103 @@
-import random
 import numpy as np
-from function import eggholderV2
+import random
 import matplotlib.pyplot as plt
 
-
-def func1(x):
-    # Sphere function, use any bounds, f(0,...,0)=0
-    return sum([x[i]**2 for i in range(len(x))])
-
-
-def ensure_bounds(vec, bounds):
-    vec_new = []
-    # cycle through each variable in vector
-    for i in range(len(vec)):
-
-        # variable exceedes the minimum boundary
-        if vec[i] < bounds[i][0]:
-            vec_new.append(bounds[i][0])
-
-        # variable exceedes the maximum boundary
-        if vec[i] > bounds[i][1]:
-            vec_new.append(bounds[i][1])
-
-        # the variable is fine
-        if bounds[i][0] <= vec[i] <= bounds[i][1]:
-            vec_new.append(vec[i])
-
-    return vec_new
+def eggholder(X):
+	# X is a np.array
+	return (-(X[1] + 47) * np.sin(np.sqrt(abs(X[0]/2 + (X[1] + 47)))) -X[0] * np.sin(np.sqrt(abs(X[0] - (X[1] + 47)))))
 
 
-def differentialEvolution(cost_func, bounds, popsize, mutate, recombination, maxiter, p):
-    archived = []
-    population = []
-    values = []
+def DifferentialEvolution(populationSize : int, generations : int):
+	# CONSTANTS as defined by the question
+	dimensionSize = 2 # (x, y)
+	bounds = [(-512, 512), (-512, 512)]
+	crossoverProbability = 0.8
+	K = 0.5
 
-    for i in range(0, popsize):
-        indv = []
-        for j in range(len(bounds)):
-            indv.append(random.uniform(bounds[j][0], bounds[j][1]))
-        population.append(indv)
-        values.append(cost_func(indv))
-    # print(population)
+	generations_AvgFitness = []
+	generations_GlobMinFitness = []
 
-    evaluation = []
-    average = []
+	# Initialize random parents
+	parents = [ np.array([random.uniform(bounds[j][0], bounds[j][1]) for j in range(dimensionSize)]) for i in range(populationSize)]
 
-    # cycle through each generation (step #2)
-    for i in range(0, maxiter):
-        print("Generation:", i)
-        # print(population)
-        pop_sort = []
-        combined = []
-        for k in population:
-            combined.append(k)
-        if(i > 1):
-            pop_sort = np.column_stack((population, gen_scores))
-            pop_sort = pop_sort[pop_sort[:, len(bounds)].argsort()]
-            pop_sort = np.delete(pop_sort, len(bounds), 1)
-            for k in archived:
-                combined.append(k)
-            # print(pop_sort)
-            # print(combined)
-        else:
-            pop_sort = np.column_stack((population, values))
-            pop_sort = pop_sort[pop_sort[:, len(bounds)].argsort()]
-            pop_sort = np.delete(pop_sort, len(bounds), 1)
+	generationNumber = 0
 
-        gen_scores = []  # score keeping
-        # print(gen_scores)
-        s_f = []
-        s_cr = []
-        cr = []
-        f = []
-        # cycle through each individual in the population
-        for j in range(0, popsize):
-            for k in archived:
-                combined.append(k)
-            # Mutation
-            # select three random vector index positions [0, popsize), not including current vector (j)
-            cr_list = (np.arange(0.1, recombination+1, 0.01))
-            f_list = (np.arange(0.1, mutate+1, 0.01))
-            # print(cr_list, f_list)
-            cr.append(np.random.choice(cr_list))
-            f.append(np.random.choice(f_list))
+	while (generationNumber < generations):
+		generationNumber += 1
+		children = [] # The new children will be added here
+		F = random.uniform(-2.0, 2.0) # Our F is to be randomly generated every generation
 
-            candidates1 = list(np.arange(0, int(100*p)).astype(np.int64))
-            candidates2 = list(range(0, popsize))
-            candidates3 = list(range(0, len(archived)+popsize))
-            # print(len(candidates3))
-            candidates2.remove(j)
-            candidates3.remove(j)
+		for index, vector in enumerate(parents):
+			# Remove the parent vector so that R1, R2 and R3 won't be selected as the parent vector
+			pruned_parents = parents.copy()
+			pruned_parents.pop(index)
 
-            #random_index = random.sample(canidates, 2)
-            x_1 = pop_sort[np.random.choice(candidates1)]
-            x_2 = population[np.random.choice(candidates2)]
-            x_3 = combined[np.random.choice(candidates3)]
-            x_t = population[j]     # target individual
+			# This while loop exists only if the Vector_Trial is out of bounds (i.e. not between (-512, 512))
+			while (True):
+				Vector_R1, Vector_R2, Vector_R3 = random.sample(pruned_parents, 3)
 
-            # subtract x3 from x2, and create a new vector (x_diff)
-            x_diff1 = [x_2_i - x_3_i for x_2_i, x_3_i in zip(x_2, x_3)]
-            x_diff2 = [x_1_i - x_t_i for x_1_i, x_t_i in zip(x_1, x_t)]
-            # multiply x_diff by the mutation factor (F) and add to x_1
-            v_donor = [x_t_i + mutate * x_diff1_i+mutate*x_diff2_i for x_t_i,
-                       x_diff1_i, x_diff2_i in zip(x_t, x_diff1, x_diff2)]
-            v_donor = ensure_bounds(v_donor, bounds)
+				#  Mutant Vector
+				Vector_Mutant = vector + K * (Vector_R1 - vector) + F * (Vector_R2 - Vector_R3)
 
-            # Recombination
-            j_rand = random.randint(1, len(x_t))
-            # print(cr[j])
-            v_trial = []
-            for k in range(len(x_t)):
-                # crossover = random.random()
-                if k == j_rand or random.uniform(0, 1) < cr[j]:
-                    v_trial.append(v_donor[k])
+				# Trial Vector
+				Vector_Trial = np.array([0.0 for i in range(dimensionSize)])
 
-                else:
-                    v_trial.append(x_t[k])
+				# Crossover
+				for gene in range(dimensionSize):
+					crossoverRealtime = random.random()
 
-            # Greedy selection
-            score_trial = cost_func(v_trial)
-            score_target = cost_func(x_t)
+					if crossoverRealtime < crossoverProbability:
+						Vector_Trial[gene] = Vector_Mutant[gene]
+					else:
+						Vector_Trial[gene] = vector[gene]
 
-            if score_trial < score_target:
-                population[j] = v_trial
-                archived.append(x_t)
-                s_cr.append(cr[j])
-                s_f.append(f[j])
+				# Check if the Trial Vector is in bounds (i.e. between (-512, 512))
+				flagInBounds = True
+				for i in range(dimensionSize):
+					if not ((bounds[i][0] < Vector_Trial[i]) and (Vector_Trial[i] < bounds[i][1])):
+						flagInBounds = False
+						break
 
-                gen_scores.append(score_trial)
-                # print('   >', score_trial, v_trial)
+				# Elitism: Get the better vector w.r.t. fitness
+				if flagInBounds:
+					if eggholder(Vector_Trial) < eggholder(vector):
+						children.append(Vector_Trial)
+					else:
+						children.append(vector)
+					break
 
-            else:
-                # print('   >', score_target, x_t)
-                gen_scores.append(score_target)
-            if(len(archived) > popsize):
-                r = random.randrange(0, len(archived), 1)
-                del archived[r]
+		# Calculate values for plotting
+		parents_values = [ (eggholder(i), i) for i in parents ]
+		parents_values.sort()
 
-        c = random.uniform(0, 1)
-        sqsumf = 0
-        sumf = 0
-        for k in s_f:
-            sqsumf += k*k
-            sumf += k
+		generations_GlobMinFitness.append(parents_values[0][0])
+		
+		average = 0
+		for child in parents_values:
+			average += child[0]
 
-        if sumf == 0:
-            mean_l = 0
-        else:
-            mean_l = sqsumf/sumf
+		generations_AvgFitness.append(average/populationSize)
 
-        recombination = (1-c)*recombination+c*np.mean(s_cr)
-        mutate = (1-c)*mutate+c*mean_l
+		parents = children.copy()
 
-        # Score keeping
-        # current generation avg. fitness
-        gen_avg = sum(gen_scores) / popsize
-        # fitness of best individual
-        gen_best = min(gen_scores)
-        # solution of best individual
-        gen_sol = population[gen_scores.index(min(gen_scores))]
-
-        print(' Average: ', gen_avg)
-        print(' Best: ', gen_best)
-        print(' Best solution:', gen_sol, '\n')
-
-        evaluation.append(gen_best)
-        average.append(gen_avg)
-
-    plt.plot(evaluation, color="blue")
-    plt.plot(average, color="red")
-    plt.xlabel("Iterations")
-    plt.ylabel("Min/ average")
-    plt.title("Average fitness over iterations")
-    plt.show()
+	plt.cla()
+	plt.plot(generations_GlobMinFitness, color='green', linestyle='-', label="Global Minimum")
+	plt.plot(generations_AvgFitness, color='blue', linestyle='-', label="Average")
+	plt.title("Population: " + str(populationSize) + " | Generations : " + str(generations) + " | Global Minimum: " + str(generations_GlobMinFitness[len(generations_GlobMinFitness)-1]),
+		fontdict={'fontsize' : 8})
+	plt.legend()
+	plt.locator_params(axis='y', nbins=10)
+	plt.xlabel("Generation")
+	plt.ylabel("Fitness")
+	plt.show()
 
 
-# Cost function
-cost_func = eggholderV2
-# Bounds [(x1_min, x1_max), (x2_min, x2_max),...]
-bounds = [(-512, 512), (-512, 512)]
-# Population size, must be >= 4
-popsize = 100
-# Mutation factor [0,2]
-mutate = 0.5
-# Recombination rate [0,1]
-recombination = 0.5
-# Max number of generations (maxiter)
-maxiter = 100
-p = 0.05
+if __name__ == '__main__':
+	print ("Differential Evolution - Eggholder Function")
 
-differentialEvolution(cost_func, bounds, popsize,
-                      mutate, recombination, maxiter, p)
+	populationSize = [200] 
+	generations = [200]
+
+	for generation in generations:
+		for population in populationSize:
+			DifferentialEvolution(population, generation)
