@@ -1,62 +1,56 @@
-from function import eggholder
-from swarm import Swarm
-from function import eggholderV2
-from random import uniform
-from copy import copy
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+from ABC import ABC
 
-# Constantes del problema
-iteration = 50
-W = 1
-P1 = 1.5
-P2 = 1.4
+from matplotlib.style import use
 
-swarm = Swarm()
-swarm.createSwarm()
-evaluation = []
-average = []
-sum = 0
+from function import eggholderV3, eggholderV2
 
-for i in range(iteration):
-    for j in range(len(swarm.particulas)):
-        swarm.particulas[j].velocityX1 = W * swarm.particulas[j].velocityX1 + P1 * uniform(0, 1) * (
-            swarm.particulas[j].localMemory[0] - swarm.particulas[j].position[0]) + P2 * uniform(0, 1) * (swarm.memory[0] - swarm.particulas[j].position[0])
-        swarm.particulas[j].velocityX2 = W * swarm.particulas[j].velocityX2 + P1 * uniform(0, 1) * (
-            swarm.particulas[j].localMemory[1] - swarm.particulas[j].position[1]) + P2 * uniform(0, 1) * (swarm.memory[1] - swarm.particulas[j].position[1])
 
-        swarm.particulas[j].position[0] = swarm.particulas[j].position[0] + \
-            swarm.particulas[j].velocityX1
-        if (swarm.particulas[j].position[0] > 512):
-            swarm.particulas[j].position[0] = 512
-        if (swarm.particulas[j].position[0] < -512):
-            swarm.particulas[j].position[0] = -512
+use('classic')
+df = pd.DataFrame()
 
-        swarm.particulas[j].position[1] = swarm.particulas[j].position[1] + \
-            swarm.particulas[j].velocityX2
-        if (swarm.particulas[j].position[1] > 512):
-            swarm.particulas[j].position[1] = 512
-        if (swarm.particulas[j].position[1] < -512):
-            swarm.particulas[j].position[1] = -512
 
-        if eggholderV2(swarm.particulas[j].position) < eggholderV2(swarm.particulas[j].localMemory):
-            swarm.particulas[j].localMemory = copy(
-                swarm.particulas[j].position)
+def get_objective(objective, dimension=30):
+    objectives = {'EggHolder': eggholderV3(dimension)}
+    return objectives[objective]
 
-        if eggholderV2(swarm.particulas[j].position) < eggholderV2(swarm.memory):
-            swarm.memory = copy(swarm.particulas[j].position)
 
-    print(f'Iteration {i}, Function: ', eggholderV2(
-        swarm.memory), '\nParticle: ', swarm.memory)
+def simulate(obj_function, colony_size=30, n_iter=5000, max_trials=100, simulations=1):
+    itr = range(n_iter)
+    values = np.zeros(n_iter)
+    box_optimal = []
+    for _ in range(simulations):
+        optimizer = ABC(obj_function=get_objective(obj_function), colony_size=colony_size, n_iter=n_iter,
+                        max_trials=max_trials)
+        optimizer.optimize()
+        values += np.array(optimizer.optimality_tracking)
+        box_optimal.append(optimizer.optimal_solution.fitness)
+        print(optimizer.optimal_solution.pos)
+    values /= simulations
 
-    evaluation.append(eggholderV2(swarm.memory))
+    df[obj_function] = box_optimal
+    plt.plot(itr, values, lw=0.5, label=obj_function)
+    plt.legend(loc='upper right')
 
-    sum += evaluation[-1]
-    average.append(sum / (i + 1))
 
-plt.plot(evaluation, color="blue")
-plt.plot(average, color="red")
+def main():
+    global df
 
-plt.xlabel("Iterations")
-plt.ylabel("Min/ average")
-plt.title("Average fitness over iterations")
-plt.show()
+    plt.figure(figsize=(10, 7))
+    df = pd.DataFrame()
+    simulate('EggHolder')
+
+
+    plt.ticklabel_format(axis='y', style='sci', scilimits=(-2, 2))
+    plt.xticks(rotation=45)
+    plt.xlabel('Number of Iterations')
+    plt.ylabel('Fitness Value')
+    #plt.savefig('abc_rast.jpg')
+    # df.to_csv('abc_sphere.csv')
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
