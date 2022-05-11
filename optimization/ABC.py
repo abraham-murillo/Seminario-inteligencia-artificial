@@ -5,8 +5,8 @@ from copy import deepcopy
 
 class ArtificialBee(object):
 
-    TRIAL_INITIAL_DEFAULT_VALUE = 0
-    INITIAL_DEFAULT_PROBABILITY = 0.0
+    TRIAL_INITIAL_DEFAULT_VALUE = 1
+    INITIAL_DEFAULT_PROBABILITY = 0.00001
 
     def __init__(self, obj_function):
         self.pos = obj_function.custom_sample()
@@ -101,14 +101,19 @@ class ABC(object):
     def __update_optimality_tracking(self):
         self.optimality_tracking.append(self.optimal_solution.fitness)
 
+    def getCurrentSolution(self):
+        return min(self.onlokeer_bees + self.employee_bees,
+                   key=lambda bee: bee.fitness)
+
     def __update_optimal_solution(self):
-        n_optimal_solution = \
-            min(self.onlokeer_bees + self.employee_bees, key=lambda bee: bee.fitness)
+        n_optimal_solution = self.getCurrentSolution()
         if not self.optimal_solution:
             self.optimal_solution = deepcopy(n_optimal_solution)
         else:
             if n_optimal_solution.fitness < self.optimal_solution.fitness:
                 self.optimal_solution = deepcopy(n_optimal_solution)
+
+        return self.optimal_solution
 
     def __initialize_employees(self):
         self.employee_bees = []
@@ -124,7 +129,8 @@ class ABC(object):
         map(lambda bee: bee.explore(self.max_trials), self.employee_bees)
 
     def __calculate_probabilities(self):
-        sum_fitness = sum(map(lambda bee: bee.get_fitness(), self.employee_bees))
+        sum_fitness = sum(
+            map(lambda bee: bee.get_fitness(), self.employee_bees))
         map(lambda bee: bee.compute_prob(sum_fitness), self.employee_bees)
 
     def __select_best_food_sources(self):
@@ -160,5 +166,4 @@ class ABC(object):
 
             self.__update_optimal_solution()
             self.__update_optimality_tracking()
-            print("iter: {} = cost: {}"
-                  .format(itr, "%04.03e" % self.optimal_solution.fitness))
+            # print(f"iter: {itr}=cost: {self.optimal_solution.fitness}")

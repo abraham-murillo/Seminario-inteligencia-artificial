@@ -16,6 +16,7 @@ def eggholderV2(x):
     result = term1 + term2
     return result
 
+
 @add_metaclass(ABCMeta)
 class ObjectiveFunction(object):
 
@@ -29,13 +30,15 @@ class ObjectiveFunction(object):
         return np.random.uniform(low=self.minf, high=self.maxf, size=self.dim)
 
     def custom_sample(self):
-        return np.repeat(self.minf, repeats=self.dim) \
-               + np.random.uniform(low=0, high=1, size=self.dim) *\
-               np.repeat(self.maxf - self.minf, repeats=self.dim)
+        wut = np.repeat(self.minf, repeats=self.dim) \
+            + np.random.uniform(low=0, high=1, size=self.dim) *\
+            np.repeat(self.maxf - self.minf, repeats=self.dim)
+        return wut
 
-    #@abstractmethod
-    #def evaluate(self, x):
+    # @abstractmethod
+    # def evaluate(self, x):
     #    pass
+
 
 class eggholderV3(ObjectiveFunction):
 
@@ -43,4 +46,4 @@ class eggholderV3(ObjectiveFunction):
         super(eggholderV3, self).__init__('EggHolder', dim, -512, 512)
 
     def evaluate(self, x):
-        return (-(x[1] + 47) * np.sin(np.sqrt(abs(x[0]/2 + (x[1] + 47)))) -x[0] * np.sin(np.sqrt(abs(x[0] - (x[1] + 47)))))
+        return eggholderV2(x)
